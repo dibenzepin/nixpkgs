@@ -10,6 +10,9 @@
   libnotify,
   python3,
   wrapGAppsHook4,
+  stdenv,
+  buildPackages,
+  installShellFiles,
 }:
 
 buildGoModule rec {
@@ -51,6 +54,7 @@ buildGoModule rec {
     gobject-introspection
     python3.pkgs.wrapPython
     wrapGAppsHook4
+    installShellFiles
   ];
 
   buildInputs = [
@@ -66,25 +70,37 @@ buildGoModule rec {
     tendo
   ];
 
-  postInstall = ''
-    blueprint-compiler batch-compile gui/src/gui/.templates/ gui/src/gui/ gui/src/gui/*.blp
-    chmod +x gui/goldwarden_ui_main.py
+  postInstall =
+    ''
+      blueprint-compiler batch-compile gui/src/gui/.templates/ gui/src/gui/ gui/src/gui/*.blp
+      chmod +x gui/goldwarden_ui_main.py
 
-    mkdir -p $out/share/goldwarden
-    cp -r gui/* $out/share/goldwarden/
-    ln -s $out/share/goldwarden/goldwarden_ui_main.py $out/bin/goldwarden-gui
-    rm $out/share/goldwarden/{com.quexten.Goldwarden.desktop,com.quexten.Goldwarden.metainfo.xml,com.quexten.Goldwarden.svg,python3-requirements.json,requirements.txt}
+      mkdir -p $out/share/goldwarden
+      cp -r gui/* $out/share/goldwarden/
+      ln -s $out/share/goldwarden/goldwarden_ui_main.py $out/bin/goldwarden-gui
+      rm $out/share/goldwarden/{com.quexten.Goldwarden.desktop,com.quexten.Goldwarden.metainfo.xml,com.quexten.Goldwarden.svg,python3-requirements.json,requirements.txt}
 
-    install -D gui/com.quexten.Goldwarden.desktop -t $out/share/applications
-    install -D gui/com.quexten.Goldwarden.svg -t $out/share/icons/hicolor/scalable/apps
-    install -Dm644 gui/com.quexten.Goldwarden.metainfo.xml -t $out/share/metainfo
-    install -Dm644 cli/resources/com.quexten.goldwarden.policy -t $out/share/polkit-1/actions
+      install -D gui/com.quexten.Goldwarden.desktop -t $out/share/applications
+      install -D gui/com.quexten.Goldwarden.svg -t $out/share/icons/hicolor/scalable/apps
+      install -Dm644 gui/com.quexten.Goldwarden.metainfo.xml -t $out/share/metainfo
+      install -Dm644 cli/resources/com.quexten.goldwarden.policy -t $out/share/polkit-1/actions
 
-    install -D cli/browserbiometrics/chrome-com.8bit.bitwarden.json $out/etc/chrome/native-messaging-hosts/com.8bit.bitwarden.json
-    install -D cli/browserbiometrics/chrome-com.8bit.bitwarden.json $out/etc/chromium/native-messaging-hosts/com.8bit.bitwarden.json
-    install -D cli/browserbiometrics/chrome-com.8bit.bitwarden.json $out/etc/edge/native-messaging-hosts/com.8bit.bitwarden.json
-    install -D cli/browserbiometrics/mozilla-com.8bit.bitwarden.json $out/lib/mozilla/native-messaging-hosts/com.8bit.bitwarden.json
-  '';
+      install -D cli/browserbiometrics/chrome-com.8bit.bitwarden.json $out/etc/chrome/native-messaging-hosts/com.8bit.bitwarden.json
+      install -D cli/browserbiometrics/chrome-com.8bit.bitwarden.json $out/etc/chromium/native-messaging-hosts/com.8bit.bitwarden.json
+      install -D cli/browserbiometrics/chrome-com.8bit.bitwarden.json $out/etc/edge/native-messaging-hosts/com.8bit.bitwarden.json
+      install -D cli/browserbiometrics/mozilla-com.8bit.bitwarden.json $out/lib/mozilla/native-messaging-hosts/com.8bit.bitwarden.json
+    ''
+    + lib.optionalString (stdenv.hostPlatform.emulatorAvailable buildPackages) (
+      let
+        emulator = stdenv.hostPlatform.emulator buildPackages;
+      in
+      ''
+        installShellCompletion --cmd goldwarden \
+          --bash <(${emulator} $out/bin/goldwarden completion bash) \
+          --fish <(${emulator} $out/bin/goldwarden completion fish) \
+          --zsh <(${emulator} $out/bin/goldwarden completion zsh)
+      ''
+    );
 
   dontWrapGApps = true;
   postFixup = ''
