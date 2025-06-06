@@ -9,7 +9,7 @@
   e2fsprogs,
   proot,
   fakeNss,
-  fakeroot,
+  minifakeroot,
   file,
   go,
   jq,
@@ -1063,7 +1063,7 @@ rec {
         inherit fakeRootCommands;
         nativeBuildInputs =
           [
-            fakeroot
+            minifakeroot
           ]
           ++ optionals enableFakechroot [
             proot
@@ -1093,7 +1093,8 @@ rec {
               ''
             else
               ''
-                fakeroot bash -e -c '
+                source ${minifakeroot}/share/minifakeroot/rc
+                bash -e -c '
                   if [ -e "$NIX_ATTRS_SH_FILE" ]; then . "$NIX_ATTRS_SH_FILE"; fi
                   source $stdenv/setup
                   cd old_out
